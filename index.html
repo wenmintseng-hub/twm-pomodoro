@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>>TWM的番茄鐘 - 專業版</title>
+    <style>
+        :root {
+            /* 淺色模式 (預設) */
+            --bg-color: #FAF3E0;
+            --surface-color: #FFFFFF;
+            --primary-red: #C63D2F;
+            --text-color: #333333;
+            --border-color: #DDDDDD;
+            --muted-text: #888888;
+            --active-task: #FFF3E0;
+        }
+
+        [data-theme="dark"] {
+            /* 深色模式 */
+            --bg-color: #1A1A2E;
+            --surface-color: #16213E;
+            --primary-red: #E94560;
+            --text-color: #EAEAEA;
+            --border-color: #0F3460;
+            --muted-text: #AAAAAA;
+            --active-task: #2A2A4A;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 40px 10px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            background: var(--surface-color);
+            padding: 30px 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+        .icon-btn:hover { background: var(--border-color); }
+        .icon-btn.active { background: var(--primary-red); color: white; border-color: var(--primary-red); }
+
+        h1 { font-size: 2rem; margin: 0 0 10px 0; letter-spacing: 2px; }
+        
+        .tomato-icon { font-size: 80px; display: block; margin: 10px 0; }
+        
+        .timer-display {
+            font-size: 70px;
+            font-weight: bold;
+            color: var(--primary-red);
+            font-variant-numeric: tabular-nums;
+            margin: 10px 0;
+        }
+
+        .session-indicator {
+            font-size: 1rem;
+            color: var(--muted-text);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+        .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--border-color); }
+        .dot.active { background: var(--primary-red); }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            text-align: left;
+        }
+        .setting-item { display: flex; align-items: center; justify-content: space-between; }
+        .setting-item input[type="number"] {
+            width: 50px; padding: 5px; border-radius: 6px; border: 1px solid var(--border-color);
+            background: var(--bg-color); color: var(--text-color); text-align: center;
+        }
+        .setting-item input[type="checkbox"] { width: 18px; height: 18px; }
+
+        .controls { display: flex; gap: 15px; justify-content: center; margin-bottom: 25px; }
+        .controls button {
+            flex: 1; padding: 12px; font-size: 1.1rem; border-radius: 10px; cursor: pointer;
+            transition: 0.3s; font-weight: bold; border: 1px solid var(--border-color);
+        }
+        .btn-start { background-color: var(--primary-red); color: white; border: none; }
+        .btn-reset { background-color: var(--bg-color); color: var(--text-color); }
+
+        .todo-section { text-align: left; border-top: 1px solid var(--border-color); padding-top: 20px; }
+        .todo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .todo-header h3 { margin: 0; font-size: 1.3rem; }
+        
+        .todo-input-group { display: flex; margin-bottom: 15px; }
+        .todo-input-group input {
+            flex: 1; padding: 10px; border-radius: 8px 0 0 8px; border: 1px solid var(--border-color);
+            background: var(--bg-color); color: var(--text-color);
+        }
+        .todo-input-group button {
+            padding: 10px 15px; border-radius: 0 8px 8px 0; border: none;
+            background: var(--text-color); color: var(--surface-color); cursor: pointer;
+        }
+
+        .todo-list { list-style: none; padding: 0; margin: 0; max-height: 250px; overflow-y: auto; }
+        .todo-item {
+            background: var(--bg-color); margin-bottom: 8px; padding: 10px 12px;
+            border-radius: 8px; display: flex; align-items: center; border: 1px solid transparent;
+            cursor: pointer; transition: 0.2s;
+        }
+        .todo-item.active { border-color: var(--primary-red); background: var(--active-task); }
+        .todo-item input[type="checkbox"] { margin-right: 12px; cursor: pointer; transform: scale(1.2); }
+        .todo-item .task-text { flex: 1; font-size: 1rem; }
+        .todo-item.completed .task-text { text-decoration: line-through; color: var(--muted-text); }
+        .todo-item .tomato-count { font-size: 0.85rem; color: var(--primary-red); margin-right: 10px; font-weight: bold; }
+        .btn-delete { background: none; border: none; color: var(--muted-text); cursor: pointer; font-size: 1.2rem; }
+        
+        /* 隱藏滾動條提升美觀 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-controls">
+        <button class="icon-btn" id="themeToggle">🌙 深色</button>
+        <button class="icon-btn" id="noiseToggle">🎧 白噪音</button>
+    </div>
+
+    <h1>>TWM的番茄鐘</h1>
+    <span class="tomato-icon">🍅</span>
+
+    <div class="session-indicator" id="sessionDots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+
+    <div class="timer-display" id="timer">25:00</div>
+
+    <div class="settings-grid">
+        <div class="setting-item">
+            <span>工作 (分)</span> <input type="number" id="workTime" value="25" min="1">
+        </div>
+        <div class="setting-item">
+            <span>短休 (分)</span> <input type="number" id="breakTime" value="5" min="1">
+        </div>
+        <div class="setting-item">
+            <span>長休 (分)</span> <input type="number" id="longBreakTime" value="15" min="1">
+        </div>
+        <div class="setting-item">
+            <span>自動切換</span> <input type="checkbox" id="autoStart">
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-start" id="startBtn">開始專注</button>
+        <button class="btn-reset" id="resetBtn">重設</button>
+    </div>
+
+    <div class="todo-section">
+        <div class="todo-header">
+            <h3>待辦清單</h3>
+            <button class="icon-btn" onclick="exportCSV()">匯出報表</button>
+        </div>
+        <div class="todo-input-group">
+            <input type="text" id="todoInput" placeholder="輸入任務... (點擊列表設定為當前任務)">
+            <button onclick="addTask()">新增</button>
+        </div>
+        <ul class="todo-list" id="todoList"></ul>
+    </div>
+</div>
+
+<script>
+    // --- 系統狀態與設定 ---
+    let timer;
+    let timeLeft;
+    let isRunning = false;
+    let sessionMode = 'work'; // 'work', 'break', 'longBreak'
+    let completedPomodoros = 0;
+    let activeTaskIndex = null;
+    let tasks = JSON.parse(localStorage.getItem('pomodoro_tasks')) || [];
+    let isDarkMode = localStorage.getItem('pomodoro_theme') === 'dark';
+
+    // --- DOM 元素綁定 ---
+    const timerDisplay = document.getElementById('timer');
+    const startBtn = document.getElementById('startBtn');
+    const dots = document.querySelectorAll('.dot');
+    const inputs = {
+        work: document.getElementById('workTime'),
+        break: document.getElementById('breakTime'),
+        longBreak: document.getElementById('longBreakTime')
+    };
+    const autoStartCb = document.getElementById('autoStart');
+
+    // --- 音效引擎 (Web Audio API) ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    let noiseSource;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new AudioContext();
+    }
+
+    function playBeep() {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.5);
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function toggleWhiteNoise() {
+        initAudio();
+        const btn = document.getElementById('noiseToggle');
+        if (noiseSource) {
+            noiseSource.stop();
+            noiseSource.disconnect();
+            noiseSource = null;
+            btn.classList.remove('active');
+        } else {
+            const bufferSize = audioCtx.sampleRate * 2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            
+            noiseSource = audioCtx.createBufferSource();
+            noiseSource.buffer = buffer;
+            noiseSource.loop = true;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 800; // 調整為偏向環境的布朗噪音
+            
+            const gain = audioCtx.createGain();
+            gain.gain.value = 0.15; // 音量控制
+
+            noiseSource.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noiseSource.start();
+            btn.classList.add('active');
+        }
+    }
+    document.getElementById('noiseToggle').addEventListener('click', toggleWhiteNoise);
+
+    // --- 深色模式切換 ---
+    function applyTheme() {
+        if (isDarkMode) {
+            document.body.setAttribute('data-theme', 'dark');
+            document.getElementById('themeToggle').textContent = '☀️ 淺色';
+        } else {
+            document.body.removeAttribute('data-theme');
+            document.getElementById('themeToggle').textContent = '🌙 深色';
+        }
+        localStorage.setItem('pomodoro_theme', isDarkMode ? 'dark' : 'light');
+    }
+    document.getElementById('themeToggle').addEventListener('click', () => {
+        isDarkMode = !isDarkMode;
+        applyTheme();
+    });
+    applyTheme();
+
+    // --- 核心計時邏輯 ---
+    function updateDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        document.title = `${timerDisplay.textContent} - >TWM的番茄鐘`;
+    }
+
+    function updateSessionDots() {
+        const cycleCount = completedPomodoros % 4;
+        dots.forEach((dot, index) => {
+            dot.className = 'dot' + (index < cycleCount ? ' active' : '');
+        });
+    }
+
+    function toggleTimer() {
+        if (isRunning) {
+            clearInterval(timer);
+            startBtn.textContent = sessionMode === 'work' ? '繼續專注' : '繼續休息';
+            startBtn.style.backgroundColor = 'var(--text-color)';
+            isRunning = false;
+        } else {
+            initAudio(); // 確保解鎖音訊權限
+            isRunning = true;
+            startBtn.textContent = '暫停';
+            startBtn.style.backgroundColor = 'var(--primary-red)';
+            timer = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+                if (timeLeft <= 0) handleSessionEnd();
+            }, 1000);
+        }
+    }
+
+    function handleSessionEnd() {
+        clearInterval(timer);
+        isRunning = false;
+        playBeep();
+
+        if (sessionMode === 'work') {
+            completedPomodoros++;
+            updateSessionDots();
+            
+            // 數據量化：將番茄數計入當前選定任務
+            if (activeTaskIndex !== null && tasks[activeTaskIndex]) {
+                tasks[activeTaskIndex].pomodoros = (tasks[activeTaskIndex].pomodoros || 0) + 1;
+                saveTasks();
+            }
+
+            if (completedPomodoros % 4 === 0) {
+                sessionMode = 'longBreak';
+                alert('完成4個番茄鐘！進行長休息。');
+            } else {
+                sessionMode = 'break';
+                alert('工作結束，短暫休息一下！');
+            }
+        } else {
+            sessionMode = 'work';
+            alert('休息結束，準備開始專注！');
+        }
+
+        resetTimerDisplay();
+        
+        if (autoStartCb.checked) {
+            toggleTimer();
+        } else {
+            startBtn.textContent = sessionMode === 'work' ? '開始專注' : '開始休息';
+        }
+    }
+
+    function resetTimerDisplay() {
+        const targetInput = sessionMode === 'work' ? inputs.work : (sessionMode === 'break' ? inputs.break : inputs.longBreak);
+        timeLeft = parseInt(targetInput.value) * 60;
+        updateDisplay();
+    }
+
+    function resetTimer() {
+        clearInterval(timer);
+        isRunning = false;
+        sessionMode = 'work';
+        startBtn.textContent = '開始專注';
+        startBtn.style.backgroundColor = 'var(--primary-red)';
+        resetTimerDisplay();
+    }
+
+    // --- 待辦清單與數據導出 ---
+    const todoList = document.getElementById('todoList');
+    const todoInput = document.getElementById('todoInput');
+
+    function saveTasks() {
+        localStorage.setItem('pomodoro_tasks', JSON.stringify(tasks));
+        renderTasks();
+    }
+
+    function renderTasks() {
+        todoList.innerHTML = '';
+        tasks.forEach((task, index) => {
+            const li = document.createElement('li');
+            li.className = `todo-item ${task.completed ? 'completed' : ''} ${activeTaskIndex === index ? 'active' : ''}`;
+            
+            li.innerHTML = `
+                <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${index}, event)">
+                <span class="task-text" onclick="setActiveTask(${index})">${task.text}</span>
+                <span class="tomato-count">🍅 x ${task.pomodoros || 0}</span>
+                <button class="btn-delete" onclick="deleteTask(${index}, event)">×</button>
+            `;
+            todoList.appendChild(li);
+        });
+    }
+
+    function addTask() {
+        const text = todoInput.value.trim();
+        if (text) {
+            tasks.push({ text, completed: false, pomodoros: 0, date: new Date().toLocaleDateString() });
+            todoInput.value = '';
+            if (activeTaskIndex === null) activeTaskIndex = tasks.length - 1;
+            saveTasks();
+        }
+    }
+
+    function toggleTask(index, event) {
+        event.stopPropagation();
+        tasks[index].completed = !tasks[index].completed;
+        saveTasks();
+    }
+
+    function deleteTask(index, event) {
+        event.stopPropagation();
+        tasks.splice(index, 1);
+        if (activeTaskIndex === index) activeTaskIndex = null;
+        else if (activeTaskIndex > index) activeTaskIndex--;
+        saveTasks();
+    }
+
+    function setActiveTask(index) {
+        activeTaskIndex = index;
+        renderTasks();
+    }
+
+    function exportCSV() {
+        if (tasks.length === 0) return alert('目前沒有任務資料可匯出');
+        const bom = "\uFEFF";
+        let csvContent = bom + "建立日期,任務名稱,完成狀態,投入番茄數(25分/個)\n";
+        tasks.forEach(t => {
+            const status = t.completed ? "已完成" : "執行中";
+            csvContent += `${t.date || new Date().toLocaleDateString()},"${t.text}",${status},${t.pomodoros || 0}\n`;
+        });
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `番茄鐘任務報表_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // --- 事件監聽與初始化 ---
+    startBtn.addEventListener('click', toggleTimer);
+    document.getElementById('resetBtn').addEventListener('click', resetTimer);
+    todoInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') addTask(); });
+    Object.values(inputs).forEach(input => input.addEventListener('change', () => {
+        if (!isRunning) resetTimerDisplay();
+    }));
+
+    // 初始設定
+    resetTimerDisplay();
+    renderTasks();
+
+</script>
+
+</body>
+</html>
