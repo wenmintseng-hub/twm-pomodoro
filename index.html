@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>>TWM的番茄鐘 - 專業版</title>
+    <title>TWM的番茄鐘 - 專業版</title>
     <!-- Android 與一般瀏覽器分頁圖示 -->
     <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🍅</text></svg>'>
 
@@ -306,7 +306,7 @@
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
         timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        document.title = `${timerDisplay.textContent} - >TWM的番茄鐘`;
+        document.title = `${timerDisplay.textContent} - TWM的番茄鐘`;
     }
 
     function updateSessionDots() {
